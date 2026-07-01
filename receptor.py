@@ -33,7 +33,7 @@ print(f'[*] Servidor UDP aguardando arquivos em {IP} : {PORTA}...')
 
 # Variáveis de controle de estado da transferência
 seq_esperado = 0  # Próximo número de sequência que o servidor aceitará
-arquivo_destino = open('arquivo.pdf', 'wb')  # Cria/abre o arquivo final em modo binário | w -> write (escrever) b -> binary (binário)
+arquivo_destino = open('recebido.pdf', 'wb')  # Cria/abre o arquivo final em modo binário | w -> write (escrever) b -> binary (binário)
 transacao_atual = None  # Guardará o ID da transferência ativa para evitar mistura de dados
 
 
@@ -48,11 +48,12 @@ try:
                 print("[SIMULAÇÃO] Pacote perdido na rede...")
                 continue
 
+        # Essa parte aqui é o rollback com timeout de 10 segundos.
         except socket.timeout:
             print("\n[!] Timeout de 10 segundos atingido. Encerrando a sessão...")
             arquivo_destino.close()  # Fecha o arquivo para evitar corrupção
-            if os.path.exists("arquivo.pdf"):
-                os.remove("arquivo.pdf")  # Remove o arquivo incompleto
+            if os.path.exists("recebido.pdf"):
+                os.remove("recebido.pdf")  # Remove o arquivo incompleto
                 print("[-] Arquivo incompleto removido (Rollback).")
             break  # Sai do loop principal, encerrando o servidor
 
@@ -93,10 +94,11 @@ try:
                 ack_pacote = struct.pack("!I", seq_num)
                 sock.sendto(ack_pacote, endereco_cliente)
 
+# Essa parte aqui é o rollback em caso de fechamento abrupto do servidor
 except KeyboardInterrupt:
     # Captura o Ctrl+C no terminal para encerrar o servidor
     print("\n [*] Servidor encerrado pelo usuário.")
     arquivo_destino.close()  # Garante que o arquivo não fique corrompido ao fechar
 
-    if os.path.exists("arquivo.pdf"):
-        os.remove("arquivo.pdf")  # Remove o arquivo incompleto
+    if os.path.exists("recebido.pdf"):
+        os.remove("recebido.pdf")  # Remove o arquivo incompleto
