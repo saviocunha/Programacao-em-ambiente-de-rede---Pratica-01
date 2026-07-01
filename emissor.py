@@ -79,7 +79,12 @@ with open(NOME_ARQUIVO, 'rb') as arquivo:
             except socket.timeout:
                 print(f'[!] Timeout! Não recebi o ACK do pacote {seq_num}.')
                 tentativas += 1
-        
+
+            except ConnectionResetError:
+                print(f'[-] Erro: Conexão resetada pelo receptor. Tentando novamente...')
+                tentativas = MAX_TENTATIVAS  # Força a saída do loop para encerrar a transferência
+                break
+                    
         if tentativas == MAX_TENTATIVAS:
             print('[-] Limite de retransmissões atingido. Conexão perdida.')
             break # Aborta a transferência
