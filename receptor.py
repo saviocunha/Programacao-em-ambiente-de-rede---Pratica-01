@@ -2,6 +2,7 @@
 import socket
 import struct
 import os
+import random
 
 # IP vazio ("") indica que o servidor irá escutar em todas as interfaces de rede disponíveis.
 IP = ""
@@ -26,6 +27,8 @@ sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
 # Vincula o socket ao IP e Porta definidos
 sock.bind((IP, PORTA))
 
+sock.settimeout(10.0)  # fix: Define aqui um timeout de 10 segundos para operações de recebimento (Rollback)
+
 print(f'[*] Servidor UDP aguardando arquivos em {IP} : {PORTA}...')
 
 # Variáveis de controle de estado da transferência
@@ -36,9 +39,22 @@ transacao_atual = None  # Guardará o ID da transferência ativa para evitar mis
 
 try:
     while True:
-        # Recebendo dados
-        # Buffer de 2048 bytes é maior que o MTU padrão (1500), garantindo leitura do pacote cheio
-        pacote, endereco_cliente = sock.recvfrom(2048)
+        try:
+            # Recebendo dados
+            # Buffer de 2048 bytes é maior que o MTU padrão (1500), garantindo leitura do pacote cheio
+            pacote, endereco_cliente = sock.recvfrom(2048)
+            
+            if random.random() < 0.3: #Simulação de perda de pacotes com taxa de 30%
+                print("[SIMULAÇÃO] Pacote perdido na rede...")
+                continue
+
+        except socket.timeout:
+            print("\n[!] Timeout de 10 segundos atingido. Encerrando a sessão...")
+            arquivo_destino.close()  # Fecha o arquivo para evitar corrupção
+            if os.path.exists("arquivo.pdf"):
+                os.remove("arquivo.pdf")  # Remove o arquivo incompleto
+                print("[-] Arquivo incompleto removido (Rollback).")
+            break  # Sai do loop principal, encerrando o servidor
 
         # Separa o cabeçalho dos dados reais (payload)
         cabecalho_bytes = pacote[:TAMANHO_CABECALHO]
@@ -81,3 +97,6 @@ except KeyboardInterrupt:
     # Captura o Ctrl+C no terminal para encerrar o servidor
     print("\n [*] Servidor encerrado pelo usuário.")
     arquivo_destino.close()  # Garante que o arquivo não fique corrompido ao fechar
+
+    if os.path.exists("arquivo.pdf"):
+        os.remove("arquivo.pdf")  # Remove o arquivo incompleto

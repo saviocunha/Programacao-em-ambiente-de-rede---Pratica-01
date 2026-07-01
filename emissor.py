@@ -60,6 +60,11 @@ with open(NOME_ARQUIVO, 'rb') as arquivo:
 
                 # Aguardar o ACK    
                 ack_pacote, _ = sock.recvfrom(4) # Espera 4 bytes (o strunct "!I")
+                
+                # Simulador de perda de ACK
+                if random.random() < 0.3: 
+                    print("[SIMULAÇÃO] ACK perdido na rede...")
+                    raise socket.timeout() 
 
                 ack_num = struct.unpack('!I', ack_pacote) [0]
 
